@@ -77,6 +77,7 @@ async def verify(request: Request):
 
         verify_token = params.get("hub.verify_token")
         challenge = params.get("hub.challenge")
+        print("TOKEN FROM META: ", verify_token )
 
         if verify_token == "mytoken":
             return challenge
