@@ -67,6 +67,25 @@ llm = ChatGroq(
 
 print("SYSTEM READY!")
 
+def ask_pdf_ai(question):
+    db_instance = load_db()
+
+    docs = db_instance.similarity_search(question, k=3)
+
+    context = "\n".join([doc.page_content for doc in docs])
+
+    prompt = f"""
+    Answer the question based on the context below:
+
+    Context:
+    {context}
+
+    Question:
+    {question}
+    """
+
+    response = llm.invoke(prompt)
+    return response.content
 
 
 def send_message(to, message):
@@ -116,8 +135,8 @@ async def receive_message(request: Request):
         message = data["entry"][0]["changes"][0]["value"]["messages"][0]["text"]["body"]
         sender = data["entry"][0]["changes"][0]["value"]["messages"][0]["from"]
 
-        # 🔥 For now simple reply
-        reply = f"You said: {message}"
+        #  For now simple reply
+        reply = ask_pdf_ai(message)
 
         send_message(sender, reply)
 
@@ -125,30 +144,6 @@ async def receive_message(request: Request):
         print("ERROR:", e)
 
     return {"status": "ok"}
-
-
-    
-    db_instance = load_db
-    docs = db_instance.similarity_search(user_message, k=5)
-    context = "\n".join([d.page_content for d in docs])
-
-    response = llm.invoke(f"""
-    
-    You are a Professional HR assitant.
-    Understand the PDF, Check the Details.
-
-    Context:
-    {context}
-
-    Question:
-    {user_message}
-    
-    
-    """)
-
-    answer = response.content 
-    send_whatsapp_message(sender, answer)
-    return{"status": "ok"}
 
 
 
