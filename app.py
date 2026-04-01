@@ -104,9 +104,12 @@ async def webhook(req: Request):
 
 
 @app.get("/webhook")
-def verify(mode: str = None, challenge: str = None, verify_token: str = None):
-    if verify_token == "mytoken":
-        return challenge
+def verify(request: Request):
+    params = request.query_params
+
+    if params.get("hub.verify_token") == "mytoken":
+        return param.get("hub.challenge")
+
     return "verification failed"
 
 
