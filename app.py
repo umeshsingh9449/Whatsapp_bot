@@ -12,6 +12,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+embeddings = FastEmbedEmbeddings()
+db = None
+
+
 class Query(BaseModel):
     question: str
 
@@ -43,14 +47,13 @@ print("Loading PDF...")
 
 #loader
 
-db = None
-
 def load_db():
     global db
 
     if db is None:
         loader = PyPDFLoader("Test.pdf")
         docs = loader.load()
+        
 
         splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         chunks = splitter.split_documents(docs)
