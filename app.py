@@ -40,14 +40,24 @@ def send_whatsapp_message(to, messgae):
     requests.post(url, headers=headers, json=data)
 
 print("Loading PDF...")
-loader = PyPDFLoader("Test.pdf")
-docs = loader.load()
-splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
-chunks = splitter.split_documents(docs)
 
-print("Create embeddings...")
-embeddings = FastEmbedEmbeddings()
-db = FAISS.from_documents(chunks, embeddings)
+#loader
+
+db = None
+
+def load_db():
+    global db
+
+    if db is None:
+        loader = PyPDFLoader("Test.pdf")
+        docs = loader.load()
+
+        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        chunks = splitter.split_documents(docs)
+
+        db = FAISS.from_documents(chunks, embeddings)
+
+    return db
 
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
@@ -70,7 +80,8 @@ async def webhook(req: Request):
         return {"status": "no message"}
 
     
-    docs = db.similarity_search(user_message, k=5)
+    db_instance = load_db
+    docs = db_instance.similarity_search(user_message, k=5)
     context = "\n".join([d.page_content for d in docs])
 
     response = llm.invoke(f"""
