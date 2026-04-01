@@ -68,14 +68,23 @@ llm = ChatGroq(
 print("SYSTEM READY!")
 
 
+from fastapi import Request
+
 @app.get("/webhook")
-def verify(request: Request):
-    params = request.query_params
+async def verify(request: Request):
+    try:
+        params = request.query_params
 
-    if params.get("hub.verify_token") == "mytoken":
-        return param.get("hub.challenge")
+        verify_token = params.get("hub.verify_token")
+        challenge = params.get("hub.challenge")
 
-    return "verification failed"
+        if verify_token == "mytoken":
+            return challenge
+
+        return {"error": "Invalid token"}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.post("/webhook")
