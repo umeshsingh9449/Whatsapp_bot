@@ -89,6 +89,14 @@ async def verify(request: Request):
 
 
 @app.post("/webhook")
+async def receive_message(request: Request):
+    data = await request.json()
+
+    print("INCOMING:", data)
+
+    return {"status": "received"}
+
+@app.post("/webhook")
 async def webhook(req: Request):
     data = await req.json()
 
