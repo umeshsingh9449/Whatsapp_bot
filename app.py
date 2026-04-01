@@ -68,6 +68,16 @@ llm = ChatGroq(
 print("SYSTEM READY!")
 
 
+@app.get("/webhook")
+def verify(request: Request):
+    params = request.query_params
+
+    if params.get("hub.verify_token") == "mytoken":
+        return param.get("hub.challenge")
+
+    return "verification failed"
+
+
 @app.post("/webhook")
 async def webhook(req: Request):
     data = await req.json()
@@ -103,14 +113,7 @@ async def webhook(req: Request):
     return{"status": "ok"}
 
 
-@app.get("/webhook")
-def verify(request: Request):
-    params = request.query_params
 
-    if params.get("hub.verify_token") == "mytoken":
-        return param.get("hub.challenge")
-
-    return "verification failed"
 
 
 if __name__ == "__main__":
