@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 import requests
 import os
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
@@ -46,8 +46,8 @@ splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
 chunks = splitter.split_documents(docs)
 
 print("Create embeddings...")
-embedings = HuggingFaceEmbeddings(model_name = "all-MiniLM-L6-v2")
-db = FAISS.from_documents(chunks, embedings)
+embeddings = FastEmbedEmbeddings()
+db = FAISS.from_documents(chunks, embeddings)
 
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",

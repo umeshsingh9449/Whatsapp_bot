@@ -2,13 +2,9 @@ fastapi
 uvicorn
 langchain
 langchain-community
-langchain-openai
 langchain-groq
-openai
 faiss-cpu
 pypdf
 requests
-tiktoken
-whatsapp-api-client-python
-sentence-transformers
+fastembed
 python-dotenv
