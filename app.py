@@ -72,20 +72,20 @@ from fastapi import Request
 
 @app.get("/webhook")
 async def verify(request: Request):
-    try:
-        params = request.query_params
+    params = request.query_params
 
-        verify_token = params.get("hub.verify_token")
-        challenge = params.get("hub.challenge")
-        print("TOKEN FROM META: ", verify_token )
+    verify_token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
 
+    print("TOKEN FROM META:", verify_token)
+
+    # Only respond when BOTH are present
+    if verify_token and challenge:
         if verify_token == "mytoken":
-            return challenge
+            return Response(content=challenge, media_type="text/plain")
 
-        return {"error": "Invalid token"}
-
-    except Exception as e:
-        return {"error": str(e)}
+    # For all other cases → return 403 (NOT JSON)
+    return Response(status_code=403)
 
 
 @app.post("/webhook")
