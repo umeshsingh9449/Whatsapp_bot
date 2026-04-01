@@ -68,7 +68,25 @@ llm = ChatGroq(
 print("SYSTEM READY!")
 
 
-from fastapi import Request
+
+def send_message(to, message):
+    url = f"https://graph.facebook.com/v18.0/{os.getenv('PHONE_NUMBER_ID')}/messages"
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('WHATSAPP_TOKEN')}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": message}
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+    print("SEND RESPONSE:", response.text)
+
 
 @app.get("/webhook")
 async def verify(request: Request):
@@ -94,18 +112,20 @@ async def receive_message(request: Request):
 
     print("INCOMING:", data)
 
-    return {"status": "received"}
-
-@app.post("/webhook")
-async def webhook(req: Request):
-    data = await req.json()
-
     try:
-        message = data["entry"][0]["changes"][0]["Values"]["messages"][0]
-        user_message = message["text"]["body"]
-        sender = message["from"]
-    except:
-        return {"status": "no message"}
+        message = data["entry"][0]["changes"][0]["value"]["messages"][0]["text"]["body"]
+        sender = data["entry"][0]["changes"][0]["value"]["messages"][0]["from"]
+
+        # 🔥 For now simple reply
+        reply = f"You said: {message}"
+
+        send_message(sender, reply)
+
+    except Exception as e:
+        print("ERROR:", e)
+
+    return {"status": "ok"}
+
 
     
     db_instance = load_db
