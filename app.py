@@ -66,9 +66,9 @@ async def receive_message(request: Request):
         if "document" in message_data:
             doc = message_data["document"]
             media_id = doc["id"]
-            send_message(sender, "PDF recived. Processing....")
+            F.send_message(sender, "PDF recived. Processing....")
             
-            file_path = download_pdf(media_id)
+            file_path = F.download_pdf(media_id)
             loader = PyPDFLoader(file_path)
             docs = loader.load()
 
@@ -76,7 +76,7 @@ async def receive_message(request: Request):
             chunks = splitter.split_documents(chunks, embeddings)
             db = FAISS.from_documents(chunks, embeddings)
             user_db[sender] = db 
-            send_message(sender, " PDF Processed! Now ask you Questions.")
+            F.send_message(sender, " PDF Processed! Now ask you Questions.")
 
         # Case2 : User SENT Text:
         elif "text" in message_data:
@@ -84,11 +84,11 @@ async def receive_message(request: Request):
 
             if sender in user_dbs:
                 db = user_dbs[sender]
-                reply = ask_pdf_ai(db, user_message)
+                reply = F.ask_pdf_ai(db, user_message)
             else:
                 reply = "Pleader upload a PDF first."
 
-            send_message(sender, reply)
+            F.send_message(sender, reply)
 
     except Exception as e:
         print("ERROR:", e)
