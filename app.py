@@ -89,7 +89,7 @@ async def receive_message(request: Request):
             loader = PyPDFLoader(file_path)
             docs = loader.load()[:10] #only first 10 pages
 
-            splitter = RecursiveCharacterTextSplitter(chunks_size=300, chunk_overlap=30)
+            splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
             chunks = splitter.split_documents(chunks, embeddings)
             db = FAISS.from_documents(chunks, embeddings)
             user_db[sender] = db 
