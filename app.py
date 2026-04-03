@@ -69,7 +69,7 @@ async def receive_message(request: Request):
         value = changes[0].get("value", {})
 
         # Important filter
-        if "message" not in value:
+        if "messages" not in value:
             print("Non-message event:", value)
             return {"status": "ignored"}
 
@@ -102,7 +102,7 @@ async def receive_message(request: Request):
                 db = user_dbs[sender]
                 reply = F.ask_pdf_ai(db, user_message)
             else:
-                reply = "Pleader upload a PDF first."
+                reply = "Pleader upload a PDF first." # change this code block for better reasoning and more natural talk
 
             F.send_message(sender, reply)
 
