@@ -75,7 +75,7 @@ def download_pdf(media_id):
     #set1: Get media URL
     url = f"https://graph.facebook.com/v18.0/{media_id}"
     res = requests.get(url,headers=headers).json()
-    media_rl = res["url"]
+    media_url = res["url"]
 
     #step2: Download file
     file_data = requests.get(media_url, headers=headers).content
