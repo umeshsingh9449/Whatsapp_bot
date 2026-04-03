@@ -101,6 +101,8 @@ def classify_message(msg):
 
 def casual_reply(msg):
     prompt = f"""{msg}"""
+    res = llm.invoke(prompt).content.lower()
+    return res 
 
 
 
