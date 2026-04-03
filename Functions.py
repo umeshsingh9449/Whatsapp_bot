@@ -1,3 +1,32 @@
+from fastapi import FastAPI, Request, Response
+import requests
+import os
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_groq import ChatGroq
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+embeddings = FastEmbedEmbeddings()
+user_dbs = {}
+
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",
+    api_key= os.getenv("GROQ_API_KEY")
+    )
+
+
+class Query(BaseModel):
+    question: str
+
+
+app = FastAPI()
+
 def send_whatsapp_message(to, message):
     url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
 
