@@ -100,7 +100,10 @@ def classify_message(msg):
     return "casual" if "casual" in res else "document"
 
 def casual_reply(msg):
-    prompt = f"""{msg}"""
+    prompt = f""" This message: {msg} 
+     is just a part of a very user centric detail, so just send normal short reply without asking or telling anything 
+     it's very user centric so pls just answer the message normally and nothing at all. 
+    """
     res = llm.invoke(prompt).content.lower()
     return res 
 
