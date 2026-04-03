@@ -120,12 +120,14 @@ async def receive_message(request: Request):
             user_message = message_data["text"]["body"]
             intent = F.classify_message(user_message)
 
-            if intent == "casual": # change this code block for better reasoning and more natural talk
-                reply = F.casual_reply(user_message)
 
-            elif sender in user_dbs:
+            if sender in user_dbs:
                 db = user_dbs[sender]
                 reply = F.ask_pdf_ai(db, user_message)
+
+            elif intent == "casual": # change this code block for better reasoning and more natural talk
+                reply = F.casual_reply(user_message)
+                
             else:
                 reply = "Pleader upload a PDF first." 
 
