@@ -54,7 +54,7 @@ async def verify(request: Request):
 
 @app.post("/webhook")
 async def receive_message(request: Request):
-    data = await requests.json()
+    data = await request.json()
     
     print("Incoming:", data)
 
@@ -94,7 +94,7 @@ async def receive_message(request: Request):
         print("ERROR:", e)
 
     return {"status": "ok"}
-    
+
 
 
 
