@@ -85,6 +85,23 @@ def download_pdf(media_id):
 
     return file_path
 
+def classify_message(msg):
+    prompt = f""" 
+            Classify this message into one of these:
+            -- casual
+            --document_question
+
+            Message: {msg}
+    
+    """
+
+    res = llm.invoke(prompt).content.lower()
+
+    return "casual" if "casual" in res else "document"
+
+def casual_reply(msg):
+    prompt = f"""{msg}"""
+
 
 
 if __name__ == "__main__":

@@ -118,8 +118,12 @@ async def receive_message(request: Request):
         # Case2 : User SENT Text:
         elif "text" in message_data:
             user_message = message_data["text"]["body"]
+            intent = F.classify_message(user_message)
 
-            if sender in user_dbs:
+            if intent == "casual":
+                reply = F.casual_reply(user_message)
+
+            elif sender in user_dbs:
                 db = user_dbs[sender]
                 reply = F.ask_pdf_ai(db, user_message)
             else:
