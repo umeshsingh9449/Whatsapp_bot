@@ -30,9 +30,9 @@ app = FastAPI()
 
 print("SYSTEM READY!")
 
-def ask_pdf_ai(question):
+def ask_pdf_ai(db, question):
 
-    docs = db_instance.similarity_search(question, k=3)
+    docs = db.similarity_search(question, k=3)
 
     context = "\n".join([doc.page_content for doc in docs])
 
