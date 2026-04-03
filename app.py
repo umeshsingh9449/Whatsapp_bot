@@ -9,6 +9,7 @@ from langchain_groq import ChatGroq
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import Functions as F
+import time
 
 load_dotenv()
 
@@ -59,20 +60,35 @@ async def receive_message(request: Request):
     print("Incoming:", data)
 
     try:
-        message_data = data["entry"][0]["changes"][0]["value"]["messages"][0]
+        entry = data.get("entry",[])
+        if not entry:
+            return {"status": "no entry"}
+        changes = entry[0].get("changes", [])
+        if not changes:
+            return {"status": "no changes"}
+        value = changes[0].get("value", {})
+
+        # Important filter
+        if "message" not in value:
+            print("Non-message event:", value)
+            return {"status": "ignored"}
+
+        message_data = value["messages"][0]
         sender = message_data["from"]
 
         # case 1: USER SENT PDF
         if "document" in message_data:
             doc = message_data["document"]
             media_id = doc["id"]
-            F.send_message(sender, "PDF recived. Processing....")
+            start = time.time()
+            #processing
+            F.send_message(sender, "PDF recived. Processing....", time.time() - start)
             
             file_path = F.download_pdf(media_id)
             loader = PyPDFLoader(file_path)
-            docs = loader.load()
+            docs = loader.load()[:10] #only first 10 pages
 
-            splitter = RecursiveCharacterTextSplitter(chunks_size=500, chunk_overlap=50)
+            splitter = RecursiveCharacterTextSplitter(chunks_size=300, chunk_overlap=30)
             chunks = splitter.split_documents(chunks, embeddings)
             db = FAISS.from_documents(chunks, embeddings)
             user_db[sender] = db 
