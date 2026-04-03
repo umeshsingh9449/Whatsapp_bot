@@ -59,7 +59,7 @@ async def receive_message(request: Request):
     print("Incoming:", data)
 
     try:
-        message_data = data["entry"][0]["changes"][0]["values"]["messages"][0]
+        message_data = data["entry"][0]["changes"][0]["value"]["messages"][0]
         sender = message_data["from"]
 
         # case 1: USER SENT PDF
