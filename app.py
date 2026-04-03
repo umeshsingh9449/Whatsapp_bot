@@ -8,12 +8,18 @@ from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import Functions as F
 
 load_dotenv()
 
 
 embeddings = FastEmbedEmbeddings()
-db = None
+user_dbs = {}
+
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",
+    api_key= os.getenv("GROQ_API_KEY")
+    )
 
 
 class Query(BaseModel):
@@ -25,89 +31,7 @@ app = FastAPI()
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 
-def send_whatsapp_message(to, messgae):
-    url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
 
-    headers = {
-        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
-        "Content-Type": "application/json"
-
-    }
-
-    data = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {"body": message}
-    }
-
-    requests.post(url, headers=headers, json=data)
-
-print("Loading PDF...")
-
-#loader
-
-def load_db():
-    global db
-
-    if db is None:
-        loader = PyPDFLoader("Test.pdf")
-        docs = loader.load()
-        
-
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        chunks = splitter.split_documents(docs)
-
-        db = FAISS.from_documents(chunks, embeddings)
-
-    return db
-
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    api_key= os.getenv("GROQ_API_KEY")
-    )
-
-
-print("SYSTEM READY!")
-
-def ask_pdf_ai(question):
-    db_instance = load_db()
-
-    docs = db_instance.similarity_search(question, k=3)
-
-    context = "\n".join([doc.page_content for doc in docs])
-
-    prompt = f"""
-    Answer the question based on the context below:
-
-    Context:
-    {context}
-
-    Question:
-    {question}
-    """
-
-    response = llm.invoke(prompt)
-    return response.content
-
-
-def send_message(to, message):
-    url = f"https://graph.facebook.com/v18.0/{os.getenv('PHONE_NUMBER_ID')}/messages"
-
-    headers = {
-        "Authorization": f"Bearer {os.getenv('WHATSAPP_TOKEN')}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {"body": message}
-    }
-
-    response = requests.post(url, headers=headers, json=payload)
-    print("SEND RESPONSE:", response.text)
 
 
 @app.get("/webhook")
@@ -130,23 +54,48 @@ async def verify(request: Request):
 
 @app.post("/webhook")
 async def receive_message(request: Request):
-    data = await request.json()
-
-    print("INCOMING:", data)
+    data = await requests.json()
+    
+    print("Incoming:", data)
 
     try:
-        message = data["entry"][0]["changes"][0]["value"]["messages"][0]["text"]["body"]
-        sender = data["entry"][0]["changes"][0]["value"]["messages"][0]["from"]
+        message_data = data["entry"][0]["changes"][0]["values"]["messages"][0]
+        sender = message_data["from"]
 
-        #  For now simple reply
-        reply = ask_pdf_ai(message)
+        # case 1: USER SENT PDF
+        if "document" in message_data:
+            doc = message_data["document"]
+            media_id = doc["id"]
+            send_message(sender, "PDF recived. Processing....")
+            
+            file_path = download_pdf(media_id)
+            loader = PyPDFLoader(file_path)
+            docs = loader.load()
 
-        send_message(sender, reply)
+            splitter = RecursiveCharacterTextSplitter(chunks_size=500, chunk_overlap=50)
+            chunks = splitter.split_documents(chunks, embeddings)
+            db = FAISS.from_documents(chunks, embeddings)
+            user_db[sender] = db 
+            send_message(sender, " PDF Processed! Now ask you Questions.")
+
+        # Case2 : User SENT Text:
+        elif "text" in message_data:
+            user_message = message_data["text"]["body"]
+
+            if sender in user_dbs:
+                db = user_dbs[sender]
+                reply = ask_pdf_ai(db, user_message)
+            else:
+                reply = "Pleader upload a PDF first."
+
+            send_message(sender, reply)
 
     except Exception as e:
         print("ERROR:", e)
 
     return {"status": "ok"}
+    
+
 
 
 
