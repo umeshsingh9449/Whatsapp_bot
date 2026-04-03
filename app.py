@@ -82,7 +82,8 @@ async def receive_message(request: Request):
             media_id = doc["id"]
             start = time.time()
             #processing
-            F.send_message(sender, "PDF recived. Processing....", time.time() - start)
+            F.send_message(sender, "PDF recived. Processing....")
+            print("PDF Processing time...", time.time() - start)
             
             file_path = F.download_pdf(media_id)
             loader = PyPDFLoader(file_path)
