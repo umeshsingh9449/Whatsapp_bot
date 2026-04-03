@@ -86,12 +86,12 @@ async def receive_message(request: Request):
             print("PDF Processing time...", time.time() - start)
             
             try:
-                file_path = download_pdf(media_id)
+                file_path = F.download_pdf(media_id)
                 loader = PyPDFLoader(file_path)
                 docs = loader.load()
 
                 if not docs:
-                    send_message(sender, "❌ PDF is empty or unreadable")
+                    F.send_message(sender, "❌ PDF is empty or unreadable")
                     return {"status": "error"}
                 
                 splitter = RecursiveCharacterTextSplitter(
@@ -102,16 +102,16 @@ async def receive_message(request: Request):
                 chunks = splitter.split_documents(docs)
 
                 if not chunks:
-                    send_message(sender, "❌ failed to process PDF ")
+                    F.send_message(sender, "❌ failed to process PDF ")
                     return {"status": "error"}
                 
                 db = FAISS.from_documents(chunks, embeddings)
                 user_dbs[sender] = db
-                send_message(sender, "✅ PDF processed! Ask your question.")
+                F.send_message(sender, "✅ PDF processed! Ask your question.")
 
             except Exception as e:
                 print("PDF ERROR: ", e)
-                send_message(sender, "❌ Error processing PDF")
+                F.send_message(sender, "❌ Error processing PDF")
 
 
 
