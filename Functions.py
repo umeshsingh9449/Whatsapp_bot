@@ -10,9 +10,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Lower temperature for routing and RAG; casual replies use a separate instance.
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
     api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.2,
+)
+llm_casual = ChatGroq(
+    model="llama-3.3-70b-versatile",
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.75,
 )
 
 # Fallback when model returns nothing or whitespace (never send empty WhatsApp bodies).
@@ -94,36 +101,59 @@ def _is_obvious_casual(text: str) -> bool:
     return bool(_OBVIOUS_CASUAL.match(t))
 
 
-def classify_message(msg: str) -> str:
+def classify_message(msg: str, has_pdf_db: bool = False) -> str:
     """
-    Returns exactly one label: 'casual' or 'document'.
-    """
-    prompt = f"""Reply with exactly one word, either casual or document — nothing else.
+    Returns 'casual' or 'document'.
 
-- casual: greetings, thanks, small talk, chit-chat, or messages not asking about file content.
-- document: questions about a PDF/document, policies, facts to look up in uploaded material, or anything that needs the document to answer.
+    Important: do NOT treat a message as document-related just because it contains
+    words like "pdf", "file", or "document" — only when the user wants answers
+    *from* uploaded material (Q&A / summary / extraction from that content).
+    """
+    prompt = f"""Reply with exactly one word: casual or document — nothing else.
+
+casual — Use when:
+- Greetings, thanks, small talk, jokes, opinions, venting, or general chat.
+- They mention "pdf", "document", or "file" in passing (format jokes, preferences, "I hate pdfs", comparing tools) WITHOUT asking you to read or answer from their uploaded file.
+- The message is about something else and only happens to include those words.
+
+document — Use ONLY when:
+- They want factual answers, summaries, or quotes drawn FROM document content (policy, contract, handbook, the file they shared, clauses, sections, figures).
+- They ask what's in the file, to summarize it, what a section says, or similar document-Q&A intent.
+
+Examples:
+- "I prefer Word over pdf" → casual
+- "What's the leave policy in the handbook" → document
+- "pdf is such a pain" → casual
+- "According to page 2 what is the deadline" → document
 
 Message: {msg}
 """
     res = (llm.invoke(prompt).content or "").strip().lower()
-    # Take first token; tolerate "casual." or "document-related"
     first = res.split()[0] if res else ""
     if first.startswith("casual"):
         return "casual"
     if first.startswith("document"):
         return "document"
-    # Safe default: treat as document-related so we can offer upload or RAG
-    return "document"
+    # Ambiguous: without an uploaded file, prefer casual so we don't nag with "upload a PDF"
+    # for incidental keywords. With a file, prefer document so real questions still hit RAG.
+    return "document" if has_pdf_db else "casual"
 
 
 def casual_reply(msg: str) -> str:
-    prompt = f"""You are a friendly WhatsApp assistant. The user wrote:
+    prompt = f"""You're replying on WhatsApp. The user wrote:
 "{msg}"
 
-Reply in 1–3 short sentences. Be warm and natural. Do not mention PDFs or documents unless they did.
-Do not use bullet points. Sound human, not like a system message.
+Rules:
+- 1–2 short sentences usually; max 3 if really needed.
+- Sound like a normal person: relaxed, direct, not a chatbot.
+- Do NOT use these (or similar) phrases: "that's wonderful", "that's great to hear", "I'm glad to hear", "I'm happy to help", "absolutely", "certainly", "I'd be delighted", "great question".
+- Skip filler praise and corporate warmth. You can be friendly without gushing.
+- Do not mention PDFs or documents unless they did.
+- No bullet points.
+
+Write only your reply.
 """
-    res = llm.invoke(prompt)
+    res = llm_casual.invoke(prompt)
     return (res.content or "").strip()
 
 
@@ -146,7 +176,9 @@ def handle_text_message(user_message: str, has_pdf_db: bool, db) -> str:
     if _is_obvious_casual(text):
         intent = "casual"
     else:
-        intent = classify_message(text)
+        # Pass has_pdf_db so ambiguous classifier output doesn't force "upload PDF"
+        # when the user only mentioned "pdf" in passing and no file is loaded.
+        intent = classify_message(text, has_pdf_db=has_pdf_db)
 
     if intent == "casual":
         return casual_reply(text)
